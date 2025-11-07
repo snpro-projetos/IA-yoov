@@ -1,10 +1,10 @@
-<?php
+﻿<?php
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');
     exit();
 }
-include_once 'includes/db.php';
+require_once 'conexao.php';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -24,7 +24,7 @@ include_once 'includes/db.php';
             $stmt->execute([$_SESSION['user_id']]);
             $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($messages as $msg) {
-                echo '<div class="chat-message user"><strong>Você:</strong> ' . htmlspecialchars($msg['question']) . '</div>';
+                echo '<div class="chat-message user"><strong>VocÃª:</strong> ' . htmlspecialchars($msg['question']) . '</div>';
                 echo '<div class="chat-message ai"><strong>IA:</strong> ' . htmlspecialchars($msg['answer']) . '</div>';
             }
             ?>
@@ -43,26 +43,32 @@ include_once 'includes/db.php';
         if (!question) return;
 
         const chatBox = document.getElementById('chatBox');
-        chatBox.innerHTML += `<div class='chat-message user'><strong>Você:</strong> ${question}</div>`;
+        chatBox.innerHTML += `<div class='chat-message user'><strong>VocÃª:</strong> ${question}</div>`;
         document.getElementById('question').value = '';
 
         try {
-            const response = await fetch('http://localhost:8000/api/ask', {
+            const response = await fetch('api.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ question })
             });
             const data = await response.json();
+
+            if (!response.ok || data.error) {
+                throw new Error(data.error || 'Erro desconhecido.');
+            }
+
             chatBox.innerHTML += `<div class='chat-message ai'><strong>IA:</strong> ${data.answer}</div>`;
 
-            // Salva no histórico local via AJAX PHP
+            // Salva no histÃ³rico local via AJAX PHP
             fetch('includes/save_history.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `question=${encodeURIComponent(question)}&answer=${encodeURIComponent(data.answer)}`
             });
         } catch (error) {
-            chatBox.innerHTML += `<div class='chat-message ai error'><strong>Erro:</strong> Falha na conexão com a IA.</div>`;
+            const message = (error && error.message) ? error.message : 'Falha na conexao com a IA.';
+            chatBox.innerHTML += `<div class='chat-message ai error'><strong>Erro:</strong> ${message}</div>`;
         }
 
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -70,3 +76,15 @@ include_once 'includes/db.php';
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
